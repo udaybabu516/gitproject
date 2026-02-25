@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EventHub</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  background: #0f0f1a;
+  color: white;
+}
+
+nav {
+  background: #1a1a2e;
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+}
+
+nav a {
+  color: white;
+  text-decoration: none;
+  margin-left: 15px;
+}
+
+.container {
+  padding: 20px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(280px,1fr));
+  gap: 20px;
+}
+
+.card {
+  background: #1f1f3a;
+  padding: 15px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.card img {
+  width: 50%;
+  border-radius: 10px;
+}
+
+button {
+  background: #e94560;
+  color: white;
+  border: none;
+  padding: 10px;
+  margin-top: 10px;
+  width: 100%;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+input, select {
+  padding: 8px;
+  margin: 5px 0;
+  width: 100%;
+}
+
+.hidden { display: none; }
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.8);
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-content {
+  background: #1f1f3a;
+  padding: 20px;
+  border-radius: 10px;
+  width: 300px;
+}
+</style>
+</head>
+
+<body>
+
+<nav>
+  <div>EventHub</div>
+  <div>
+    <a href="#" onclick="showPage('events')">Events</a>
+    <a href="#" onclick="showPage('myEvents')">My Events</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- Events Page -->
+  <div id="eventsPage">
+    <h2><center>Discover Events</center></h2>
+
+    <input type="text" id="search" placeholder="Search events..." oninput="filterEvents()">
+    <select id="categoryFilter" onchange="filterEvents()">
+      <option value="all">All Categories</option>
+      <option value="Conference">Conference</option>
+      <option value="Concert">Concert</option>
+      <option value="Workshop">Workshop</option>
+    </select>
+
+    <div class="grid" id="eventsGrid"></div>
+  </div>
+
+  <!-- Detail Page -->
+  <div id="detailPage" class="hidden">
+    <button onclick="showPage('events')">⬅ Back</button>
+    <h2 id="detailTitle"></h2>
+    <img id="detailImage" width="50%">
+    <p id="detailDesc"></p>
+    <p><b>Date:</b> <span id="detailDate"></span></p>
+    <p><b>Location:</b> <span id="detailLocation"></span></p>
+    <button onclick="openModal()">Register</button>
+  </div>
+
+  <!-- My Events -->
+  <div id="myEventsPage" class="hidden">
+    <h2>My Registered Events</h2>
+    <div class="grid" id="myEventsGrid"></div>
+  </div>
+
+</div>
+
+<!-- Registration Modal -->
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <h3>Register</h3>
+    <input type="text" id="name" placeholder="Name" required>
+    <input type="email" id="email" placeholder="Email" required>
+    <input type="number" id="tickets" value="1" min="1">
+    <button onclick="registerEvent()">Submit</button>
+    <button onclick="closeModal()">Cancel</button>
+  </div>
+</div>
+
+<script>
+const events = [
+  {id:1,title:"Tech Conference",category:"Conference",date:"2026-03-10",location:"New York",image:"https://images.stockcake.com/public/2/9/2/292f8e62-8891-41bb-9d82-cf81027244bf_large/tech-conference-speech-stockcake.jpg",desc:"Tech leaders gathering."},
+  {id:2,title:"Rock Concert",category:"Concert",date:"2026-04-05",location:"Los Angeles",image:"https://images.pexels.com/photos/1763075/pexels-photo-1763075.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500",desc:"Live music concert."},
+  {id:3,title:"AI Workshop",category:"Workshop",date:"2026-05-15",location:"San Francisco",image:"https://www.adaptemy.com/wp-content/uploads/2020/01/ai-in-education-workshop.png",desc:"Hands-on AI workshop."}
+];
+
+let currentEvent = null;
+
+function showPage(page){
+  document.getElementById("eventsPage").classList.add("hidden");
+  document.getElementById("detailPage").classList.add("hidden");
+  document.getElementById("myEventsPage").classList.add("hidden");
+
+  if(page==="events") document.getElementById("eventsPage").classList.remove("hidden");
+  if(page==="myEvents") {
+    document.getElementById("myEventsPage").classList.remove("hidden");
+    renderMyEvents();
+  }
+}
+
+function renderEvents(list=events){
+  const grid=document.getElementById("eventsGrid");
+  grid.innerHTML="";
+  list.forEach(event=>{
+    grid.innerHTML+=`
+      <div class="card" onclick="showDetail(${event.id})">
+        <img src="${event.image}">
+        <h3>${event.title}</h3>
+        <p>${event.date}</p>
+        <p>${event.location}</p>
+        <button>View Details</button>
+      </div>
+    `;
+  });
+}
+
+function showDetail(id){
+  currentEvent=events.find(e=>e.id===id);
+  document.getElementById("detailTitle").innerText=currentEvent.title;
+  document.getElementById("detailImage").src=currentEvent.image;
+  document.getElementById("detailDesc").innerText=currentEvent.desc;
+  document.getElementById("detailDate").innerText=currentEvent.date;
+  document.getElementById("detailLocation").innerText=currentEvent.location;
+
+  showPage("detailPage");
+  document.getElementById("detailPage").classList.remove("hidden");
+}
+
+function filterEvents(){
+  const search=document.getElementById("search").value.toLowerCase();
+  const category=document.getElementById("categoryFilter").value;
+
+  const filtered=events.filter(e=>{
+    return (
+      e.title.toLowerCase().includes(search) &&
+      (category==="all" || e.category===category)
+    );
+  });
+
+  renderEvents(filtered);
+}
+
+function openModal(){
+  document.getElementById("modal").style.display="flex";
+}
+
+function closeModal(){
+  document.getElementById("modal").style.display="none";
+}
+
+function registerEvent(){
+  const name=document.getElementById("name").value;
+  const email=document.getElementById("email").value;
+  const tickets=document.getElementById("tickets").value;
+
+  if(!name || !email){
+    alert("Fill all fields");
+    return;
+  }
+
+  let registered=JSON.parse(localStorage.getItem("registered"))||[];
+  registered.push({...currentEvent,name,email,tickets});
+  localStorage.setItem("registered",JSON.stringify(registered));
+
+  alert("Registered successfully!");
+  closeModal();
+}
+
+function renderMyEvents(){
+  const grid=document.getElementById("myEventsGrid");
+  const registered=JSON.parse(localStorage.getItem("registered"))||[];
+  grid.innerHTML="";
+
+  if(registered.length===0){
+    grid.innerHTML="<p>No registered events.</p>";
+    return;
+  }
+
+  registered.forEach((event,index)=>{
+    grid.innerHTML+=`
+      <div class="card">
+        <img src="${event.image}">
+        <h3>${event.title}</h3>
+        <p>${event.date}</p>
+        <p>${event.location}</p>
+        <button onclick="removeEvent(${index})">Remove</button>
+      </div>
+    `;
+  });
+}
+
+function removeEvent(index){
+  let registered=JSON.parse(localStorage.getItem("registered"))||[];
+  registered.splice(index,1);
+  localStorage.setItem("registered",JSON.stringify(registered));
+  renderMyEvents();
+}
+
+renderEvents();
+</script>
+
+</body>
+</html>
